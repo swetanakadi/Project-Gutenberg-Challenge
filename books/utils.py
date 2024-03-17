@@ -1,7 +1,12 @@
 from django.db.models import Q
 from rest_framework.pagination import PageNumberPagination
+from .models import *
 
-from .models import Author, Subject, Bookshelf, Book
+
+class CustomPageNumberPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 
 def authors_matching(authors):
@@ -48,7 +53,37 @@ def title_matching(titles):
     return Book.objects.filter(q)
 
 
-class CustomPageNumberPagination(PageNumberPagination):
-    page_size = 20
-    page_size_query_param = 'page_size'
-    max_page_size = 100
+""" custom functions to fetch books based on given search criteria"""
+
+
+def fetch_books_based_on_titles(titles):
+    return list(title_matching(titles).values_list('id', flat=True))
+
+
+def fetch_books_based_on_ids(books):
+    return list(Book.objects.filter(gutenberg_id__in=books).values_list('id', flat=True))
+
+
+def fetch_books_based_on_languages(languages):
+    books = BookLanguages.objects.filter(language__in=Language.objects.filter(code__in=languages)).values_list(
+        'book', flat=True)
+    return list(books)
+
+
+def fetch_books_based_on_mime_type(mime_types):
+    books = Format.objects.filter(mime_type__in=mime_types).values_list('book', flat=True)
+    return list(books)
+
+
+def fetch_books_based_on_authors(authors):
+    books = BookAuthors.objects.filter(author__in=authors_matching(authors)).values_list('book', flat=True)
+    return list(books)
+
+
+def fetch_books_based_on_topics(topics):
+    subjects = list(
+        BookSubjects.objects.filter(subject__in=subjects_matching(topics)).values_list('book', flat=True))
+    shelves = list(
+        BookBookshelves.objects.filter(bookshelf__in=bookshelf_matching(topics)).values_list('book', flat=True))
+    result = subjects + shelves
+    return result
