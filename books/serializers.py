@@ -137,6 +137,8 @@ class BookSerializer(serializers.ModelSerializer):
     def get_author_info(self, book):
         fields = ('birth_year', 'death_year', 'name')
         instance = BookAuthors.objects.filter(book=book).first()
+        if instance is None:
+            return
         return AuthorSerializer(instance=instance.author, fields=fields).data
 
     def get_book_genre(self, book):
@@ -149,15 +151,21 @@ class BookSerializer(serializers.ModelSerializer):
         fields = ('name', )
         instances = Subject.objects.filter(
             id__in=BookSubjects.objects.filter(book=book).values_list('subject', flat=True))
+        if instances is None:
+            return
         return SubjectSerializer(instances, many=True, fields=fields).data
 
     def get_book_shelves(self, book):
         fields = ('name', )
         instances = Bookshelf.objects.filter(
             id__in=BookBookshelves.objects.filter(book=book).values_list('bookshelf', flat=True))
+        if instances is None:
+            return
         return BookShelfSerializer(instances, many=True, fields=fields).data
 
     def get_media_links(self, book):
         fields = ('mime_type', 'url')
         qs = Format.objects.filter(book=book)
+        if qs is None:
+            return
         return FormatSerializer(qs, many=True, fields=fields).data
